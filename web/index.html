@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8f6">
+  <title>Disparos — automação WhatsApp</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17231d;
+      --muted: #748078;
+      --line: #e7ece8;
+      --surface: #fff;
+      --canvas: #f5f7f5;
+      --green: #157f55;
+      --green-dark: #116543;
+      --mint: #e5f4ec;
+      --orange: #e99b47;
+      --red: #c65151;
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+    .sidebar { background: #fff; border-right: 1px solid var(--line); padding: 25px 16px; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px 31px; font-size: 17px; font-weight: 750; letter-spacing: -.5px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; color: white; background: var(--green); font-size: 16px; }
+    .nav-label { color: #9aa39d; font-size: 10px; font-weight: 750; letter-spacing: 1px; margin: 0 10px 9px; text-transform: uppercase; }
+    .nav { display: grid; gap: 5px; }
+    .nav button { border: 0; width: 100%; padding: 10px 11px; border-radius: 9px; background: transparent; color: #626d65; text-align: left; font-weight: 560; }
+    .nav button:hover, .nav button.active { background: var(--mint); color: var(--green-dark); }
+    .nav-icon { display: inline-block; width: 26px; font-size: 15px; }
+    .sidebar-note { margin: 35px 7px 0; border-radius: 12px; padding: 14px; background: #f5f8f5; color: var(--muted); font-size: 12px; }
+    .sidebar-note strong { display: block; color: var(--ink); margin-bottom: 5px; }
+    .main { min-width: 0; }
+    .topbar { height: 76px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 35px; }
+    .crumb { color: var(--muted); font-size: 13px; }
+    .top-right { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #b6c0b9; }
+    .status-dot.ok { background: #20a46b; }
+    .content { max-width: 1420px; margin: 0 auto; padding: 34px 35px 50px; }
+    .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 25px; }
+    h1 { margin: 0; font-size: 25px; letter-spacing: -.8px; line-height: 1.25; }
+    .subtitle { color: var(--muted); margin: 7px 0 0; }
+    .grid { display: grid; gap: 18px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 13px; padding: 20px; }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .stat-value { font-size: 27px; font-weight: 730; letter-spacing: -.8px; margin-top: 9px; }
+    .stat-foot { color: #8d9990; font-size: 11px; margin-top: 4px; }
+    .two-col { grid-template-columns: 1.15fr .85fr; }
+    .card-title { display: flex; align-items: center; justify-content: space-between; margin: 0 0 16px; font-size: 15px; }
+    .card-title small { font-size: 12px; font-weight: 450; color: var(--muted); }
+    .empty { color: var(--muted); padding: 25px 10px; text-align: center; }
+    .activity-list { display: grid; gap: 0; }
+    .activity-item { display: flex; align-items: flex-start; gap: 11px; padding: 12px 0; border-top: 1px solid #f0f3f0; }
+    .activity-item:first-child { border-top: 0; padding-top: 0; }
+    .activity-symbol { color: var(--green); background: var(--mint); width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; flex: 0 0 auto; }
+    .activity-detail { font-weight: 550; font-size: 12px; }
+    .activity-time { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: grid; gap: 6px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: #4b5850; font-size: 12px; font-weight: 650; }
+    input, textarea, select { width: 100%; border: 1px solid #dfe6e0; border-radius: 8px; padding: 10px 11px; color: var(--ink); background: #fff; outline: 0; }
+    input:focus, textarea:focus, select:focus { border-color: #69b18c; box-shadow: 0 0 0 3px #e6f4ec; }
+    textarea { min-height: 96px; resize: vertical; }
+    .help { color: var(--muted); font-size: 11px; }
+    .inline-check { display: flex; align-items: center; gap: 8px; color: #4b5850; font-size: 12px; }
+    .inline-check input { width: auto; accent-color: var(--green); }
+    .btn { border: 1px solid #dce5de; border-radius: 8px; padding: 9px 13px; background: #fff; color: #425047; font-size: 12px; font-weight: 650; }
+    .btn:hover { background: #f5f8f5; }
+    .btn.primary { color: #fff; background: var(--green); border-color: var(--green); }
+    .btn.primary:hover { background: var(--green-dark); }
+    .btn.danger { color: var(--red); }
+    .btn.small { padding: 6px 9px; font-size: 11px; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 620px; text-align: left; }
+    th { color: #89948c; font-size: 10px; font-weight: 700; letter-spacing: .45px; text-transform: uppercase; padding: 10px 9px; border-bottom: 1px solid var(--line); }
+    td { padding: 13px 9px; border-bottom: 1px solid #f0f3f0; font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-flex; align-items: center; border-radius: 99px; padding: 4px 8px; font-size: 10px; font-weight: 700; white-space: nowrap; background: #f0f2f0; color: #5c675f; }
+    .badge.green { background: #e4f4eb; color: #16794f; }
+    .badge.amber { background: #fff3e1; color: #a76b21; }
+    .badge.red { background: #fff0ef; color: #b24743; }
+    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .toolbar input { width: 220px; }
+    .section-gap { margin-top: 18px; }
+    .group-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .group-card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    .group-card h3 { margin: 0 0 4px; font-size: 13px; }
+    .group-card p { margin: 0 0 12px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+    .group-actions { display: grid; gap: 8px; }
+    .group-actions textarea { min-height: 56px; }
+    .workflow-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .workflow-toolbar input { max-width: 290px; }
+    .workflow-builder { display: grid; grid-template-columns: 170px minmax(420px, 1fr) 230px; gap: 12px; min-height: 565px; }
+    .flow-panel { border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-width: 0; background: #fff; }
+    .flow-panel-title { margin: 0 0 12px; font-size: 11px; color: #78847b; text-transform: uppercase; letter-spacing: .6px; }
+    .flow-palette { display: grid; align-content: start; gap: 8px; }
+    .flow-palette-item { border: 1px solid #e1e9e3; border-radius: 8px; padding: 10px; background: #fbfcfb; cursor: grab; user-select: none; }
+    .flow-palette-item:active { cursor: grabbing; }
+    .flow-palette-item strong { display: block; font-size: 11px; }
+    .flow-palette-item span { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .flow-dropzone { overflow: auto; padding: 0; background: #fafcfb; }
+    .workflow-canvas { position: relative; width: 900px; height: 620px; overflow: hidden; background-image: radial-gradient(#dce5df 1px, transparent 1px); background-size: 20px 20px; }
+    .workflow-canvas.connecting { cursor: crosshair; }
+    .flow-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+    .flow-edge { fill: none; stroke: #87ad96; stroke-width: 2; }
+    .flow-node { position: absolute; width: 212px; min-height: 94px; border: 1px solid #dfe7e1; border-radius: 10px; background: #fff; box-shadow: 0 5px 16px #173a2410; cursor: pointer; z-index: 1; }
+    .flow-node.selected { border-color: var(--green); box-shadow: 0 0 0 3px #dff1e6, 0 5px 16px #173a2410; }
+    .flow-node-head { display: flex; align-items: center; gap: 7px; padding: 9px 10px; border-bottom: 1px solid #edf1ed; cursor: grab; }
+    .flow-node-head:active { cursor: grabbing; }
+    .flow-node-icon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--green-dark); background: var(--mint); font-size: 11px; }
+    .flow-node-head strong { font-size: 11px; flex: 1; }
+    .flow-node-body { padding: 8px 10px; color: #758078; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+    .flow-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; color: #94a097; font-size: 12px; text-align: center; pointer-events: none; }
+    .flow-connect-hint { color: #9a6b24; font-size: 10px; margin: 9px 0 0; min-height: 30px; }
+    .flow-inspector .field { margin-bottom: 12px; }
+    .flow-inspector textarea { min-height: 110px; }
+    .workflow-list { margin-top: 16px; }
+    .flow-save-note { color: var(--muted); font-size: 11px; }
+    .contact-dialog, .campaign-contacts-dialog { border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: 0 18px 60px #10231a30; }
+    .contact-dialog { width: min(440px, calc(100vw - 28px)); }
+    .campaign-contacts-dialog { width: min(760px, calc(100vw - 28px)); max-height: min(85vh, 760px); }
+    .contact-dialog::backdrop { background: #14251b70; }
+    .campaign-contacts-dialog::backdrop { background: #14251b70; }
+    .contact-dialog h2 { margin: 0 0 17px; font-size: 18px; }
+    .campaign-contacts-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+    .contact-dialog .field { margin-bottom: 13px; }
+    .contact-dialog .actions, .campaign-contacts-dialog .actions { justify-content: flex-end; margin-top: 20px; }
+    .campaign-contact-list { max-height: 48vh; overflow: auto; margin-top: 12px; }
+    .campaign-contact-list table { min-width: 500px; }
+    .campaign-contact-list input { width: auto; }
+    .campaign-contacts-dialog .toolbar { flex-wrap: wrap; }
+    .campaign-contacts-dialog .toolbar input { flex: 1; min-width: 170px; }
+    .campaign-detail { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .campaign-summary { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .alert { padding: 12px 14px; border-radius: 9px; background: #fff6e8; color: #875b20; font-size: 12px; margin-bottom: 16px; }
+    .settings-line { display: flex; justify-content: space-between; gap: 20px; padding: 13px 0; border-top: 1px solid #f0f3f0; font-size: 12px; }
+    .settings-line strong { font-weight: 650; }
+    .settings-line span { color: var(--muted); overflow-wrap: anywhere; text-align: right; }
+    .toast { position: fixed; right: 24px; bottom: 22px; background: #19271f; color: #fff; padding: 12px 16px; border-radius: 9px; box-shadow: 0 8px 26px #15251b30; z-index: 20; font-size: 12px; max-width: min(440px, calc(100vw - 32px)); }
+    .hidden { display: none !important; }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 68px minmax(0, 1fr); }
+      .sidebar { padding: 20px 8px; }
+      .brand { justify-content: center; padding: 0 0 28px; }
+      .brand-name, .nav-label, .nav-text, .sidebar-note { display: none; }
+      .nav button { text-align: center; padding: 11px 3px; }
+      .nav-icon { width: auto; }
+      .content { padding: 26px 20px; }
+      .topbar { padding: 0 20px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .workflow-builder { grid-template-columns: 130px minmax(420px, 1fr); }
+      .flow-inspector { grid-column: 1 / -1; }
+    }
+    @media (max-width: 640px) {
+      .topbar { height: 62px; padding: 0 14px; }
+      .content { padding: 22px 14px 36px; }
+      .page-head { flex-direction: column; }
+      .stats, .two-col, .form-grid, .group-list { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .toolbar { width: 100%; }
+      .toolbar input { width: 100%; }
+      h1 { font-size: 22px; }
+      .top-right #instance-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">↗</span><span class="brand-name">disparos</span></div>
+      <div class="nav-label">Workspace</div>
+      <nav class="nav">
+        <button class="active" data-page="overview"><span class="nav-icon">⌂</span><span class="nav-text">Visão geral</span></button>
+        <button data-page="contacts"><span class="nav-icon">♙</span><span class="nav-text">Contatos</span></button>
+        <button data-page="campaigns"><span class="nav-icon">◉</span><span class="nav-text">Campanhas</span></button>
+        <button data-page="workflows"><span class="nav-icon">⤳</span><span class="nav-text">Workflows</span></button>
+        <button data-page="groups"><span class="nav-icon">♧</span><span class="nav-text">Grupos e comunidades</span></button>
+        <button data-page="settings"><span class="nav-icon">⚙</span><span class="nav-text">Configurações</span></button>
+      </nav>
+      <div class="sidebar-note"><strong>Mensagens responsáveis</strong>Envie campanhas somente para contatos com consentimento ativo. A resposta “SAIR” bloqueia novos disparos.</div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb">Workspace <span style="color:#c6cec8"> / </span> <span id="crumb-page">Visão geral</span></div>
+        <div class="top-right"><span class="status-dot" id="status-dot"></span><span id="instance-label">Uazapi não configurada</span><button class="btn small" id="access-key-btn">Acesso</button></div>
+      </header>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+  <div class="toast hidden" id="toast"></div>
+  <script>
+    const state = { page: "overview", contacts: [], contactGroups: [], campaigns: [], workflows: [], groups: [], groupMembers: null, campaignDetails: null, campaignSelection: null, campaignEditor: null, status: {}, flowDraft: null };
+    const titles = {
+      overview: "Visão geral", contacts: "Contatos", campaigns: "Campanhas",
+      workflows: "Workflows", groups: "Grupos e comunidades", settings: "Configurações"
+    };
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const dateText = (value) => value ? new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
+    let toastTimer;
+
+    async function api(path, options = {}) {
+      if (location.protocol === "file:") {
+        throw new Error("A aplicação foi aberta como arquivo. Inicie o backend com `python app.py` e acesse http://127.0.0.1:8000.");
+      }
+      const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+      const accessKey = sessionStorage.getItem("disparos-app-key");
+      if (accessKey) headers["X-App-Key"] = accessKey;
+      const response = await fetch(path, { ...options, headers });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `Falha HTTP ${response.status}`);
+      return result;
+    }
+    function toast(message) {
+      const element = document.getElementById("toast");
+      element.textContent = message;
+      element.classList.remove("hidden");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => element.classList.add("hidden"), 4000);
+    }
+    async function refresh() {
+      try {
+        const [status, contacts, contactGroups, campaigns, workflows] = await Promise.all([
+          api("/api/status"), api("/api/contacts"), api("/api/contact-groups"), api("/api/campaigns"), api("/api/workflows")
+        ]);
+        Object.assign(state, { status, contacts, contactGroups, campaigns, workflows });
+        if (state.campaignDetails) {
+          state.campaignDetails.recipients = await api(`/api/campaigns/${state.campaignDetails.id}/recipients`);
+        }
+        document.getElementById("status-dot").classList.toggle("ok", status.configured);
+        document.getElementById("instance-label").textContent = status.configured ? "Uazapi configurada" : "Uazapi não configurada";
+        render();
+      } catch (error) {
+        if (error.message.includes("Chave de acesso")) toast("Informe a chave de acesso da aplicação no botão Acesso.");
+        else toast(error.message);
+      }
+    }
+    function setPage(page) {
+      state.page = page;
+      document.querySelectorAll(".nav button").forEach((button) => button.classList.toggle("active", button.dataset.page === page));
+      document.getElementById("crumb-page").textContent = titles[page];
+      render();
+    }
+    function render() {
+      const content = document.getElementById("content");
+      const pages = {
+        overview: renderOverview, contacts: renderContacts, campaigns: renderCampaigns,
+        workflows: renderWorkflows, groups: renderGroups, settings: renderSettings
+      };
+      content.innerHTML = pages[state.page]();
+      bindPageActions();
+    }
+    function pageHead(title, subtitle, action = "") {
+      return `<div class="page-head"><div><h1>${title}</h1><p class="subtitle">${subtitle}</p></div>${action}</div>`;
+    }
+    function renderOverview() {
+      const opted = Number(state.status.eligible_contacts ?? state.contacts.filter((c) => c.opted_in).length);
+      const running = state.campaigns.filter((c) => c.status === "enviando").length;
+      return `${pageHead("Bom dia 👋", "Acompanhe suas campanhas e automações em um só lugar.",
+        `<button class="btn primary" data-goto="campaigns">＋ Nova campanha</button>`)}
+        <div class="grid stats">
+          <div class="card"><div class="stat-label">Contatos no banco</div><div class="stat-value">${state.contacts.length}</div><div class="stat-foot">Importados e cadastrados</div></div>
+          <div class="card"><div class="stat-label">Com consentimento</div><div class="stat-value">${opted}</div><div class="stat-foot">Elegíveis para campanhas</div></div>
+          <div class="card"><div class="stat-label">Campanhas</div><div class="stat-value">${state.campaigns.length}</div><div class="stat-foot">${running ? `${running} em andamento` : "Nenhuma em andamento"}</div></div>
+          <div class="card"><div class="stat-label">Workflows ativos</div><div class="stat-value">${state.workflows.filter((w) => w.active).length}</div><div class="stat-foot">Respostas e webhooks automáticos</div></div>
+        </div>
+        <div class="grid two-col">
+          <section class="card"><h2 class="card-title">Campanhas recentes <small>${state.campaigns.length} no total</small></h2>${campaignRows(5)}</section>
+          <section class="card"><h2 class="card-title">Atividade recente</h2><div id="activity-list" class="activity-list"><div class="empty">Carregando atividade…</div></div></section>
+        </div>${campaignSelectionMarkup()}`;
+    }
+    function campaignRows(limit = 100) {
+      if (!state.campaigns.length) return `<div class="empty">Suas campanhas aparecerão aqui.</div>`;
+      return `<div class="table-wrap"><table><thead><tr><th>Campanha</th><th>Status</th><th>Envios</th><th>Falhas</th><th>Data</th><th>Ações</th></tr></thead><tbody>${state.campaigns.slice(0, limit).map((c) => {
+        const editable = c.status === "draft";
+        const canStart = (editable || c.status === "interrompida") && Number(c.pending) > 0;
+        const canResend = !editable && c.status !== "enviando";
+        const reuseLabel = c.status === "draft" ? "Usar como modelo" : "Duplicar como rascunho";
+        return `<tr><td><strong>${esc(c.name)}</strong></td><td>${statusBadge(c.status)}</td><td>${c.sent || 0}/${c.total || 0} aceitos · ${c.pending || 0} pendentes</td><td>${c.failed || 0}</td><td>${dateText(c.created_at)}</td><td><button class="btn small" data-campaign-details="${esc(c.id)}">Detalhes</button> ${editable ? `<button class="btn small" data-edit-campaign="${esc(c.id)}">Editar</button> <button class="btn small" data-select-campaign="${esc(c.id)}">Selecionar contatos</button>` : ""} <button class="btn small" data-duplicate-campaign="${esc(c.id)}">${reuseLabel}</button> ${canResend ? `<button class="btn small primary" data-resend-campaign="${esc(c.id)}">Reenviar</button>` : ""} ${canStart ? `<button class="btn small primary" data-start-campaign="${esc(c.id)}">${c.status === "interrompida" ? "Retomar disparo" : "Disparar"}</button>` : ""}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+    }
+    function statusBadge(status) {
+      const cls = status === "concluída" || status === "enviado" ? "green" :
+        status === "enviando" ? "amber" : status === "falhou" ? "red" : "";
+      return `<span class="badge ${cls}">${esc(status || "rascunho")}</span>`;
+    }
+    function contactGroupFields(selectedIds = []) {
+      return state.contactGroups.length
+        ? state.contactGroups.map((group) =>
+          `<label class="inline-check"><input type="checkbox" name="group_ids" value="${esc(group.id)}" ${selectedIds.includes(group.id) ? "checked" : ""}> ${esc(group.name)}</label>`
+        ).join("")
+        : '<span class="help">Crie um grupo abaixo para organizar os contatos.</span>';
+    }
+    function contactGroupNames(contact) {
+      const names = (contact.group_ids || []).map((id) =>
+        state.contactGroups.find((group) => group.id === id)?.name
+      ).filter(Boolean);
+      return names.length ? names.map((name) => `<span class="badge">${esc(name)}</span>`).join(" ") : "—";
+    }
+    function renderContacts() {
+      return `${pageHead("Contatos", "Organize sua base e controle o consentimento para campanhas.")}
+        <div class="alert">Contatos importados de grupos são salvos sem consentimento de marketing. Ative o consentimento somente quando houver autorização do contato.</div>
+        <div class="grid two-col">
+          <section class="card"><h2 class="card-title">Adicionar contato</h2>
+            <form id="contact-form" class="form-grid">
+              <div class="field"><label for="contact-name">Nome</label><input id="contact-name" name="name" placeholder="Nome do contato"></div>
+              <div class="field"><label for="contact-phone">WhatsApp com DDI</label><input id="contact-phone" name="phone" required placeholder="5511999999999"></div>
+              <div class="field full"><span class="help">Grupos de contatos (opcional)</span><div class="actions">${contactGroupFields()}</div></div>
+              <label class="inline-check field full"><input type="checkbox" name="opted_in"> Tem consentimento para receber campanhas</label>
+              <div class="field full"><button class="btn primary" type="submit">Salvar contato</button></div>
+            </form>
+          </section>
+          <section class="card"><h2 class="card-title">Importar CSV</h2>
+            <div class="field"><label for="csv-file">Arquivo CSV</label><input id="csv-file" type="file" accept=".csv,text/csv">
+              <span class="help">Cabeçalhos aceitos: phone/telefone, name/nome e opted_in/consentimento. Sem coluna de consentimento, contatos não podem receber campanhas.</span></div>
+            <div class="actions section-gap"><button class="btn" id="import-csv">Importar contatos</button></div>
+          </section>
+        </div>
+        <section class="card section-gap"><h2 class="card-title">Grupos de contatos</h2>
+          <form id="contact-group-form" class="toolbar"><input name="name" required maxlength="80" placeholder="Nome do grupo, por exemplo: Clientes VIP"><button class="btn primary" type="submit">Criar grupo</button></form>
+          <p class="help">Organize contatos por grupos internos. Eles não são grupos do WhatsApp. Edite um contato para incluí-lo em um ou mais grupos.</p>
+          <div class="table-wrap">${state.contactGroups.length ? `<table><thead><tr><th>Grupo</th><th>Contatos</th><th>Ações</th></tr></thead><tbody>${state.contactGroups.map((group) =>
+            `<tr><td>${esc(group.name)}</td><td>${group.contact_count}</td><td><button class="btn small" data-edit-contact-group="${esc(group.id)}">Renomear</button> <button class="btn small danger" data-delete-contact-group="${esc(group.id)}">Excluir</button></td></tr>`
+          ).join("")}</tbody></table>` : '<div class="empty">Nenhum grupo criado.</div>'}</div>
+        </section>
+        <section class="card section-gap"><div class="page-head" style="align-items:center;margin-bottom:12px"><h2 class="card-title" style="margin:0">Base de contatos</h2><div class="toolbar"><input id="contact-search" placeholder="Buscar nome ou telefone"><span class="badge">${state.contacts.length} contatos</span></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Contato</th><th>Telefone</th><th>Grupos</th><th>Origem</th><th>Disponibilidade</th><th>Consentimento</th><th>Atualizado</th><th>Ações</th></tr></thead><tbody id="contacts-table-body">${contactRows(state.contacts)}</tbody></table></div>
+        </section>
+        <dialog id="contact-editor" class="contact-dialog"><form id="edit-contact-form">
+          <h2>Editar contato</h2><input name="id" type="hidden">
+          <div class="field"><label for="edit-contact-name">Nome</label><input id="edit-contact-name" name="name" maxlength="160"></div>
+          <div class="field"><label for="edit-contact-phone">WhatsApp com DDI</label><input id="edit-contact-phone" name="phone" required></div>
+          <div class="field"><span class="help">Grupos de contatos</span><div class="actions">${contactGroupFields()}</div></div>
+          <label class="inline-check"><input type="checkbox" name="opted_in"> Autorizado a receber campanhas</label>
+          <div class="actions"><button type="button" class="btn" id="cancel-edit-contact">Cancelar</button><button type="submit" class="btn primary">Salvar alterações</button></div>
+        </form></dialog>`;
+    }
+    function contactRows(contacts) {
+      if (!contacts.length) return `<tr><td colspan="8"><div class="empty">Nenhum contato encontrado.</div></td></tr>`;
+      return contacts.map((c) => `<tr><td><strong>${esc(c.name || "Sem nome")}</strong></td><td>${esc(c.phone)}</td><td>${contactGroupNames(c)}</td><td>${esc(c.source)}</td>
+        <td>${c.whatsapp_status === "unavailable" ? '<span class="badge red" title="Uazapi informou que este telefone não está registrado no WhatsApp">Não encontrado no WhatsApp</span>' : '<span class="badge">Não verificado</span>'}</td>
+        <td><button class="btn small ${c.opted_in ? "primary" : ""}" data-consent="${esc(c.id)}" data-value="${c.opted_in ? 0 : 1}">${c.opted_in ? "Autorizado" : "Sem consentimento"}</button></td><td>${dateText(c.updated_at)}</td>
+        <td><button class="btn small" data-edit-contact="${esc(c.id)}">Editar</button> <button class="btn small danger" data-delete-contact="${esc(c.id)}">Excluir</button></td></tr>`).join("");
+    }
+    function renderCampaigns() {
+      const eligible = Number(state.status.eligible_contacts ?? state.contacts.filter((c) => c.opted_in).length);
+      const editor = state.campaignEditor;
+      const mediaName = editor?.media?.name || "Mídia anexada";
+      return `${pageHead("Campanhas", "Crie disparos para contatos do banco de dados que autorizaram o recebimento.")}
+        <div class="grid two-col">
+          <section class="card"><h2 class="card-title">${editor ? "Editar rascunho" : "Nova campanha"}</h2>
+            <form id="campaign-form" class="form-grid">
+              <div class="field full"><label for="campaign-name">Nome da campanha</label><input id="campaign-name" name="name" required maxlength="160" value="${esc(editor?.name || "")}" placeholder="Ex.: Novidades de novembro"></div>
+              <div class="field full"><label for="campaign-text">Mensagem</label><textarea id="campaign-text" name="text" ${editor?.media ? "" : "required"} placeholder="Olá {{nome}}, temos novidades para você…">${esc(editor?.text || "")}</textarea><span class="help">Informe uma mensagem ou anexe uma imagem/vídeo. Use {{nome}} para personalizar. A resposta “SAIR” desativa o consentimento para futuras campanhas.</span></div>
+              <div class="field full"><label for="campaign-media">Imagem ou vídeo (opcional)</label><input id="campaign-media" type="file" accept="image/*,video/mp4"><span class="help">Vídeos devem ser MP4. Limite de 12 MiB por arquivo.</span></div>
+              ${editor?.media ? `<div class="field full"><span class="badge green">Mídia atual: ${esc(mediaName)}</span><button class="btn small" type="button" id="remove-campaign-media">Remover mídia atual</button></div>` : ""}
+              ${editor ? `<div class="field full"><span class="help">Este rascunho é independente. Salvar alterações não modifica o histórico nem as mensagens de campanhas anteriores.</span></div>` : ""}
+              <div class="field full"><span class="badge green">${eligible} contatos autorizados e disponíveis serão incluídos</span>${eligible === 0 ? `<p class="help">Nenhum destinatário elegível. ${state.status.unavailable_contacts ? `${state.status.unavailable_contacts} telefone(s) foram rejeitados pela Uazapi como não registrados no WhatsApp; corrija esses números na tela Contatos. ` : ""}Somente contatos com consentimento ativo podem receber campanhas. <button class="btn small" type="button" data-goto="contacts">Gerenciar contatos</button></p>` : ""}</div>
+              <div class="field full actions">${editor ? `<button class="btn" type="button" id="cancel-campaign-edit">Cancelar edição</button>` : ""}<button class="btn primary" type="submit">${editor ? "Salvar alterações" : "Criar campanha"}</button></div>
+            </form>
+          </section>
+          <section class="card"><h2 class="card-title">Envio responsável</h2>
+            <p class="subtitle">O envio é sequencial e pausado entre destinatários. Contatos sem consentimento e opt-outs são ignorados.</p>
+            <div class="settings-line"><strong>Intervalo entre envios</strong><span>${Number(state.status.send_interval_seconds || 2)} s · ajuste em Configurações</span></div>
+            <div class="settings-line"><strong>Falhas individuais</strong><span>Registradas sem repetir envio automaticamente</span></div>
+            <div class="settings-line"><strong>Opt-out automático</strong><span>“SAIR”, “PARAR” ou “STOP”</span></div>
+          </section>
+        </div>
+        <section class="card section-gap"><h2 class="card-title">Histórico de campanhas</h2>${campaignRows()}${campaignDetailMarkup()}</section>${campaignSelectionMarkup()}`;
+    }
+    function campaignSelectionMarkup() {
+      if (!state.campaignSelection) return "";
+      const { id, contacts } = state.campaignSelection;
+      const groups = state.contactGroups.length ? state.contactGroups.map((group) =>
+        `<label class="inline-check"><input type="checkbox" name="campaign_group_ids" value="${esc(group.id)}"> ${esc(group.name)} (${group.eligible_count} elegíveis de ${group.contact_count})</label>`
+      ).join("") : '<span class="help">Crie grupos na tela Contatos para selecioná-los aqui.</span>';
+      const rows = contacts.length ? contacts.map((contact) =>
+        `<tr data-contact-search="${esc(`${contact.name} ${contact.phone}`.toLowerCase())}"><td><input type="checkbox" name="contact_ids" value="${esc(contact.id)}" ${contact.selected ? "checked" : ""} aria-label="Selecionar ${esc(contact.name || contact.phone)}"></td><td>${esc(contact.name || "Sem nome")}</td><td>${esc(contact.phone)}</td><td>${contactGroupNames(contact)}</td></tr>`
+      ).join("") : `<tr><td colspan="4"><div class="empty">Nenhum contato com consentimento ativo. Gerencie os contatos antes de selecionar destinatários.</div></td></tr>`;
+      return `<dialog id="campaign-contacts-dialog" class="campaign-contacts-dialog">
+        <form id="campaign-contacts-form">
+          <h2>Selecionar contatos para a campanha</h2>
+          <p class="help">Somente contatos com consentimento ativo aparecem nesta lista. A seleção pode ser alterada enquanto a campanha estiver em rascunho.</p>
+          <div class="field full section-gap"><span class="help">Selecionar por grupos internos (os grupos escolhidos substituem a seleção atual; depois você pode ajustar os contatos manualmente)</span><div class="actions">${groups}</div><button class="btn small" type="button" id="apply-campaign-groups">Selecionar contatos dos grupos</button></div>
+          <div class="toolbar section-gap"><input id="campaign-contact-search" type="search" placeholder="Buscar por nome ou telefone"><button class="btn small" type="button" id="select-visible-contacts">Selecionar visíveis</button><button class="btn small" type="button" id="deselect-visible-contacts">Desmarcar visíveis</button><span class="badge" id="campaign-selected-count"></span></div>
+          <div class="campaign-contact-list"><table><thead><tr><th>Selecionar</th><th>Contato</th><th>Telefone</th><th>Grupos</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <div class="actions"><button type="button" class="btn" id="cancel-campaign-contacts">Cancelar</button><button type="submit" class="btn primary">Salvar seleção</button></div>
+        </form>
+      </dialog>`;
+    }
+    function campaignDetailMarkup() {
+      if (!state.campaignDetails) return "";
+      const campaign = state.campaigns.find((item) => item.id === state.campaignDetails.id);
+      if (!campaign) return "";
+      const recipients = state.campaignDetails.recipients || [];
+      return `<section class="campaign-detail">
+        <div class="page-head" style="align-items:center;margin-bottom:12px"><div><h3 style="margin:0">${esc(campaign.name)} — status dos envios</h3><p class="help">“Aceito pela API” não confirma entrega no aparelho.</p></div><button class="btn small" id="close-campaign-details">Fechar</button></div>
+        <div class="campaign-summary"><span class="badge green">${campaign.sent || 0} aceitos pela API</span><span class="badge red">${campaign.failed || 0} falhas</span><span class="badge amber">${campaign.pending || 0} pendentes</span><span class="badge">${campaign.ignored || 0} ignorados</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Contato</th><th>Telefone</th><th>Status</th><th>Data do envio</th><th>Detalhe</th></tr></thead><tbody>${recipients.length ? recipients.map((r) =>
+          `<tr><td>${esc(r.name || "Sem nome")}</td><td>${esc(r.phone)}</td><td>${statusBadge(r.status)}</td><td>${dateText(r.sent_at)}</td><td>${esc(r.error || (r.status === "enviado" ? "Solicitação aceita pela Uazapi; entrega não confirmada." : "—"))}</td></tr>`).join("") :
+          '<tr><td colspan="5"><div class="empty">Esta campanha ainda não tem destinatários.</div></td></tr>'}</tbody></table></div>
+      </section>`;
+    }
+    function renderWorkflows() {
+      if (!state.flowDraft) state.flowDraft = newFlowDraft();
+      const draft = state.flowDraft;
+      const flowCanvasHeight = Math.max(620, ...draft.nodes.map((node) => (Number(node.y) || 0) + 130));
+      return `${pageHead("Workflows", "Monte automações visuais arrastando blocos e conectando as etapas.",
+        `<button class="btn" id="new-workflow">＋ Novo fluxo</button>`)}
+        <section class="card">
+          <div class="page-head" style="align-items:center;margin-bottom:16px">
+            <div class="workflow-toolbar"><label for="flow-name">Nome do fluxo</label><input id="flow-name" value="${esc(draft.name)}" placeholder="Ex.: Atendimento inicial"></div>
+            <div class="workflow-toolbar">
+              <button class="btn ${draft.connecting ? "primary" : ""}" id="connect-flow">${draft.connectFrom ? "Selecione o próximo bloco…" : draft.connecting ? "Clique no bloco inicial" : "Conectar blocos"}</button>
+              <button class="btn primary" id="save-workflow">Salvar fluxo</button>
+            </div>
+          </div>
+          <div class="workflow-builder">
+            <aside class="flow-panel"><h3 class="flow-panel-title">Arraste para o canvas</h3><div class="flow-palette">
+              ${paletteItem("trigger", "Gatilho", "Palavras-chave recebidas")}
+              ${paletteItem("send_text", "Enviar texto", "Resposta automática")}
+              ${paletteItem("send_media", "Enviar mídia", "Imagem ou vídeo")}
+              ${paletteItem("webhook", "Webhook", "Enviar evento HTTP")}
+            </div><p class="flow-connect-hint">${draft.connectFrom ? "Agora clique no bloco de destino." : draft.connecting ? "Clique em um bloco para iniciar a conexão." : "Clique em “Conectar blocos” para ligar etapas."}</p></aside>
+            <div class="flow-panel flow-dropzone" id="workflow-canvas-scroll"><div class="workflow-canvas ${draft.connecting ? "connecting" : ""}" id="workflow-canvas" style="height:${flowCanvasHeight}px">
+              <svg class="flow-edges" id="flow-edges" viewBox="0 0 900 ${flowCanvasHeight}" aria-hidden="true"><defs><marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#87ad96"></path></marker></defs>${flowEdgeMarkup(draft)}</svg>
+              ${draft.nodes.length ? draft.nodes.map((node) => flowNodeMarkup(node, draft.selectedNodeId)).join("") : '<div class="flow-empty">Arraste um gatilho para começar.<br>Depois conecte uma ação para montar seu workflow.</div>'}
+            </div></div>
+            <aside class="flow-panel flow-inspector" id="flow-inspector">${flowInspectorMarkup(draft)}</aside>
+          </div>
+          <p class="flow-save-note">O gatilho é acionado por mensagem recebida; os blocos conectados executam em sequência. Clique e arraste o cabeçalho dos blocos para reposicioná-los.</p>
+        </section>
+        <section class="card workflow-list"><h2 class="card-title">Fluxos salvos</h2><div class="table-wrap"><table><thead><tr><th>Nome</th><th>Gatilho</th><th>Blocos</th><th>Status</th><th></th></tr></thead><tbody>${workflowRows()}</tbody></table></div></section>`;
+    }
+    function newFlowDraft() {
+      return { id: null, name: "Novo workflow", nodes: [], edges: [], selectedNodeId: null, connectFrom: null, connecting: false };
+    }
+    function paletteItem(type, name, description) {
+      return `<div class="flow-palette-item" draggable="true" data-palette-type="${type}"><strong>${name}</strong><span>${description}</span></div>`;
+    }
+    function flowNodeTitle(type) {
+      return ({ trigger: "Gatilho de mensagem", send_text: "Enviar texto", send_media: "Enviar mídia", webhook: "Webhook" })[type] || type;
+    }
+    function flowNodeIcon(type) {
+      return ({ trigger: "⚡", send_text: "T", send_media: "▧", webhook: "↗" })[type] || "•";
+    }
+    function flowNodeSummary(node) {
+      const config = node.config || {};
+      if (node.type === "trigger") return config.keywords || "Configure as palavras-chave";
+      if (node.type === "send_text") return config.text || "Configure a resposta de texto";
+      if (node.type === "send_media") return `${config.media ? config.media.name || config.media.type : "Adicione uma imagem ou vídeo"}${config.caption ? ` · ${config.caption}` : ""}`;
+      return config.url || "Configure a URL do webhook";
+    }
+    function flowNodeMarkup(node, selectedId) {
+      const x = Math.max(12, Number(node.x) || 0), y = Math.max(12, Number(node.y) || 0);
+      return `<article class="flow-node ${node.id === selectedId ? "selected" : ""}" data-flow-node="${esc(node.id)}" style="left:${x}px;top:${y}px">
+        <div class="flow-node-head" data-drag-node="${esc(node.id)}"><span class="flow-node-icon">${flowNodeIcon(node.type)}</span><strong>${flowNodeTitle(node.type)}</strong><span>⠿</span></div>
+        <div class="flow-node-body" data-node-summary="${esc(node.id)}">${esc(flowNodeSummary(node))}</div>
+      </article>`;
+    }
+    function flowEdgeMarkup(draft) {
+      return draft.edges.map((edge) => {
+        const from = draft.nodes.find((node) => node.id === edge.source);
+        const to = draft.nodes.find((node) => node.id === edge.target);
+        if (!from || !to) return "";
+        const x1 = (Number(from.x) || 0) + 212, y1 = (Number(from.y) || 0) + 47;
+        const x2 = Number(to.x) || 0, y2 = (Number(to.y) || 0) + 47;
+        const curve = Math.max(45, Math.abs(x2 - x1) / 2);
+        return `<path class="flow-edge" marker-end="url(#flow-arrow)" d="M ${x1} ${y1} C ${x1 + curve} ${y1}, ${x2 - curve} ${y2}, ${x2} ${y2}"></path>`;
+      }).join("");
+    }
+    function flowInspectorMarkup(draft) {
+      const node = draft.nodes.find((item) => item.id === draft.selectedNodeId);
+      if (!node) return `<h3 class="flow-panel-title">Configuração</h3><div class="empty">Selecione um bloco para configurar.</div>`;
+      const config = node.config || {};
+      let fields = "";
+      if (node.type === "trigger") {
+        fields = `<div class="field"><label for="flow-config-keywords">Palavras-chave</label><input id="flow-config-keywords" value="${esc(config.keywords || "")}" placeholder="oi, ajuda, suporte"><span class="help">Separe as palavras por vírgula.</span></div>`;
+      } else if (node.type === "send_text") {
+        fields = `<div class="field"><label for="flow-config-text">Mensagem</label><textarea id="flow-config-text" placeholder="Olá {{nome}}!">${esc(config.text || "")}</textarea><span class="help">Use {{nome}} para personalizar a resposta.</span></div>`;
+      } else if (node.type === "send_media") {
+        fields = `<div class="field"><label for="flow-config-media">Imagem ou vídeo MP4</label><input id="flow-config-media" type="file" accept="image/*,video/mp4"><span class="help">${config.media ? `Anexado: ${esc(config.media.name || config.media.type)}` : "Até 12 MiB."}</span></div><div class="field"><label for="flow-config-caption">Legenda</label><textarea id="flow-config-caption" placeholder="Legenda opcional">${esc(config.caption || "")}</textarea></div>`;
+      } else {
+        fields = `<div class="field"><label for="flow-config-url">URL do webhook</label><input id="flow-config-url" type="url" value="${esc(config.url || "")}" placeholder="https://seu-sistema.com/evento"><span class="help">Envia contato, mensagem e evento com tokens removidos.</span></div>`;
+      }
+      return `<h3 class="flow-panel-title">${flowNodeTitle(node.type)}</h3>${fields}<button class="btn danger small" id="delete-flow-node">Remover bloco</button>`;
+    }
+    function workflowRows() {
+      if (!state.workflows.length) return `<tr><td colspan="5"><div class="empty">Nenhum workflow encontrado.</div></td></tr>`;
+      return state.workflows.map((w) => {
+        let blockCount = 0, trigger = w.keyword || "—";
+        try {
+          const graph = w.graph_json ? JSON.parse(w.graph_json) : null;
+          if (graph) {
+            blockCount = graph.nodes.length;
+            trigger = graph.nodes.filter((node) => node.type === "trigger").map((node) => node.config.keywords).join(", ");
+          }
+        } catch (_) {}
+        return `<tr><td><strong>${esc(w.name)}</strong></td><td>${esc(trigger)}</td><td>${blockCount || (w.reply_text ? 2 : 1)}</td><td>${w.active ? '<span class="badge green">Ativo</span>' : '<span class="badge">Pausado</span>'}</td><td><button class="btn small" data-edit-workflow="${esc(w.id)}">Editar</button> <button class="btn small" data-workflow-toggle="${esc(w.id)}">${w.active ? "Pausar" : "Ativar"}</button></td></tr>`;
+      }).join("");
+    }
+    function makeFlowNode(type, x, y, config = {}) {
+      return {
+        id: `node-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        type, x, y, config
+      };
+    }
+    function workflowToDraft(workflow) {
+      if (workflow.graph_json) {
+        const graph = JSON.parse(workflow.graph_json);
+        return {
+          id: workflow.id, name: workflow.name, nodes: graph.nodes, edges: graph.edges,
+          selectedNodeId: null, connectFrom: null, connecting: false
+        };
+      }
+      const nodes = [makeFlowNode("trigger", 35, 75, { keywords: workflow.keyword || "" })];
+      let previous = nodes[0];
+      const actions = [];
+      if (workflow.reply_text) actions.push(makeFlowNode("send_text", 330, 75, { text: workflow.reply_text }));
+      if (workflow.media) actions.push(makeFlowNode("send_media", 330 + actions.length * 250, 75, {
+        media: JSON.parse(workflow.media), caption: ""
+      }));
+      if (workflow.webhook_url) actions.push(makeFlowNode("webhook", 330 + actions.length * 250, 75, { url: workflow.webhook_url }));
+      const edges = [];
+      for (const action of actions) {
+        nodes.push(action);
+        edges.push({ source: previous.id, target: action.id });
+        previous = action;
+      }
+      return { id: workflow.id, name: workflow.name, nodes, edges, selectedNodeId: null, connectFrom: null, connecting: false };
+    }
+    function bindFlowBuilderActions() {
+      const draft = state.flowDraft;
+      const canvas = document.getElementById("workflow-canvas");
+      const scroll = document.getElementById("workflow-canvas-scroll");
+      if (!canvas || !draft) return;
+      const nameInput = document.getElementById("flow-name");
+      nameInput.addEventListener("input", () => { draft.name = nameInput.value; });
+      document.getElementById("new-workflow").addEventListener("click", () => {
+        state.flowDraft = newFlowDraft();
+        render();
+      });
+      document.getElementById("connect-flow").addEventListener("click", () => {
+        draft.connecting = !draft.connecting;
+        draft.connectFrom = null;
+        render();
+      });
+      document.querySelectorAll("[data-palette-type]").forEach((item) => item.addEventListener("dragstart", (event) => {
+        event.dataTransfer.setData("text/plain", item.dataset.paletteType);
+        event.dataTransfer.effectAllowed = "copy";
+      }));
+      canvas.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      });
+      canvas.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData("text/plain");
+        if (!["trigger", "send_text", "send_media", "webhook"].includes(type)) return;
+        const bounds = canvas.getBoundingClientRect();
+        const desiredX = Math.max(12, Math.min(665, event.clientX - bounds.left + scroll.scrollLeft - 106));
+        const desiredY = Math.max(12, Math.min(510, event.clientY - bounds.top + scroll.scrollTop - 30));
+        const { x, y } = findFlowPosition(draft, desiredX, desiredY);
+        const config = type === "trigger" ? { keywords: "" } :
+          type === "send_text" ? { text: "" } :
+          type === "send_media" ? { caption: "", media: null } : { url: "" };
+        const node = makeFlowNode(type, x, y, config);
+        draft.nodes.push(node);
+        draft.selectedNodeId = node.id;
+        render();
+      });
+      document.querySelectorAll("[data-flow-node]").forEach((element) => {
+        element.addEventListener("click", () => {
+          const nodeId = element.dataset.flowNode;
+          if (draft.connecting) {
+            if (!draft.connectFrom) {
+              draft.connectFrom = nodeId;
+              render();
+              return;
+            }
+            if (draft.connectFrom === nodeId) {
+              draft.connectFrom = null;
+              render();
+              return;
+            }
+            if (draft.nodes.find((node) => node.id === nodeId).type === "trigger") {
+              toast("Gatilhos iniciam um fluxo e não podem receber conexões.");
+              draft.connectFrom = null;
+              render();
+              return;
+            }
+            const duplicate = draft.edges.some((edge) => edge.source === draft.connectFrom && edge.target === nodeId);
+            if (duplicate) {
+              toast("Esses blocos já estão conectados.");
+            } else if (flowPathExists(draft, nodeId, draft.connectFrom)) {
+              toast("Essa conexão criaria um ciclo.");
+            } else {
+              draft.edges.push({ source: draft.connectFrom, target: nodeId });
+              draft.connecting = false;
+            }
+            draft.connectFrom = null;
+            render();
+            return;
+          }
+          draft.selectedNodeId = nodeId;
+          render();
+        });
+      });
+      document.querySelectorAll("[data-drag-node]").forEach((handle) => {
+        handle.addEventListener("pointerdown", (event) => {
+          if (draft.connecting || event.button !== 0) return;
+          const node = draft.nodes.find((item) => item.id === handle.dataset.dragNode);
+          const element = handle.closest(".flow-node");
+          const bounds = canvas.getBoundingClientRect();
+          const startX = event.clientX - bounds.left + scroll.scrollLeft - node.x;
+          const startY = event.clientY - bounds.top + scroll.scrollTop - node.y;
+          handle.setPointerCapture(event.pointerId);
+          event.preventDefault();
+          event.stopPropagation();
+          const move = (moveEvent) => {
+            const x = Math.max(8, Math.min(680, moveEvent.clientX - bounds.left + scroll.scrollLeft - startX));
+            const y = Math.max(8, Math.min(2400, moveEvent.clientY - bounds.top + scroll.scrollTop - startY));
+            node.x = x; node.y = y;
+            element.style.left = `${x}px`; element.style.top = `${y}px`;
+            drawFlowEdges(draft);
+          };
+          const finish = () => {
+            handle.removeEventListener("pointermove", move);
+            handle.removeEventListener("pointerup", finish);
+            handle.removeEventListener("pointercancel", finish);
+          };
+          handle.addEventListener("pointermove", move);
+          handle.addEventListener("pointerup", finish);
+          handle.addEventListener("pointercancel", finish);
+        });
+      });
+      const inspector = document.getElementById("flow-inspector");
+      const selected = draft.nodes.find((node) => node.id === draft.selectedNodeId);
+      if (selected) {
+        const bindConfig = (id, key) => {
+          const input = document.getElementById(id);
+          if (!input) return;
+          input.addEventListener("input", () => {
+            selected.config[key] = input.value;
+            const summary = document.querySelector(`[data-node-summary="${CSS.escape(selected.id)}"]`);
+            if (summary) summary.textContent = flowNodeSummary(selected);
+          });
+        };
+        bindConfig("flow-config-keywords", "keywords");
+        bindConfig("flow-config-text", "text");
+        bindConfig("flow-config-caption", "caption");
+        bindConfig("flow-config-url", "url");
+        const mediaInput = document.getElementById("flow-config-media");
+        if (mediaInput) mediaInput.addEventListener("change", async () => {
+          const file = mediaInput.files[0];
+          if (!file) return;
+          try {
+            selected.config.media = await uploadMedia(file);
+            render();
+            toast("Mídia anexada ao bloco.");
+          } catch (error) { toast(error.message); }
+        });
+        const remove = document.getElementById("delete-flow-node");
+        remove.addEventListener("click", () => {
+          draft.nodes = draft.nodes.filter((node) => node.id !== selected.id);
+          draft.edges = draft.edges.filter((edge) => edge.source !== selected.id && edge.target !== selected.id);
+          draft.selectedNodeId = null;
+          render();
+        });
+      }
+      document.getElementById("save-workflow").addEventListener("click", async () => {
+        const graph = {
+          nodes: draft.nodes.map(({ id, type, x, y, config }) => ({ id, type, x, y, config })),
+          edges: draft.edges
+        };
+        try {
+          const method = draft.id ? "PUT" : "POST";
+          const path = draft.id ? `/api/workflows/${draft.id}` : "/api/workflows";
+          const result = await api(path, { method, body: JSON.stringify({ name: draft.name, graph }) });
+          if (result.id) draft.id = result.id;
+          toast("Workflow salvo com sucesso.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      });
+      document.querySelectorAll("[data-edit-workflow]").forEach((button) => button.addEventListener("click", () => {
+        const workflow = state.workflows.find((item) => item.id === button.dataset.editWorkflow);
+        try {
+          state.flowDraft = workflowToDraft(workflow);
+          render();
+          document.querySelector(".workflow-builder").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) { toast(`Não foi possível abrir o workflow: ${error.message}`); }
+      }));
+    }
+    function findFlowPosition(draft, desiredX, desiredY) {
+      let x = desiredX, y = desiredY;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        const overlaps = draft.nodes.some((node) =>
+          x < (Number(node.x) || 0) + 230 && x + 230 > (Number(node.x) || 0) &&
+          y < (Number(node.y) || 0) + 110 && y + 110 > (Number(node.y) || 0)
+        );
+        if (!overlaps) return { x, y };
+        x += 230;
+        if (x > 660) {
+          x = 12;
+          y += 120;
+        }
+      }
+      return { x: 12, y };
+    }
+    function flowPathExists(draft, start, target) {
+      const outgoing = {};
+      draft.edges.forEach((edge) => (outgoing[edge.source] ||= []).push(edge.target));
+      const pending = [start], visited = new Set();
+      while (pending.length) {
+        const current = pending.pop();
+        if (current === target) return true;
+        if (visited.has(current)) continue;
+        visited.add(current);
+        pending.push(...(outgoing[current] || []));
+      }
+      return false;
+    }
+    function drawFlowEdges(draft) {
+      const svg = document.getElementById("flow-edges");
+      const canvas = document.getElementById("workflow-canvas");
+      const height = Math.max(620, ...draft.nodes.map((node) => (Number(node.y) || 0) + 130));
+      if (canvas) canvas.style.height = `${height}px`;
+      if (svg) {
+        svg.setAttribute("viewBox", `0 0 900 ${height}`);
+        svg.innerHTML = `<defs><marker id="flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#87ad96"></path></marker></defs>${flowEdgeMarkup(draft)}`;
+      }
+    }
+    function renderGroups() {
+      return `${pageHead("Grupos e comunidades", "Consulte grupos, salve participantes no banco e gerencie membros.")}
+        <div class="alert">Use estas funções somente em grupos/comunidades administrados por você e respeite as preferências dos participantes. Contatos sincronizados não recebem consentimento de campanha automaticamente.</div>
+        <section class="card"><div class="page-head" style="align-items:center;margin-bottom:12px"><h2 class="card-title" style="margin:0">Seus grupos</h2><button class="btn primary" id="load-groups">Buscar grupos</button></div>
+          <div id="group-list" class="group-list">${state.groups.length ? groupCards() : '<div class="empty">Clique em “Buscar grupos” para consultar sua instância Uazapi.</div>'}</div>
+        </section>
+        <section class="card section-gap"><h2 class="card-title">Consultar e importar por JID</h2>
+          <div class="form-grid">
+            <div class="field"><label for="group-jid-lookup">JID do grupo</label><input id="group-jid-lookup" placeholder="120363...@g.us"></div>
+            <div class="field actions" style="align-items:end"><button class="btn primary" id="lookup-group-members">Listar e salvar participantes</button></div>
+          </div>
+          <p class="help">Use o JID do grupo mesmo que ele não apareça na lista. Consultar e salvar participantes não exige ser administrador, mas depende de a Uazapi conseguir acessar os dados do grupo.</p>
+          <div id="group-members-list" class="section-gap">${groupMembersMarkup()}</div>
+        </section>
+        <section class="card section-gap"><h2 class="card-title">Comunidades</h2><form id="community-form" class="form-grid">
+          <div class="field"><label for="community-jid">JID da comunidade (@g.us)</label><input id="community-jid" required placeholder="120363...@g.us"></div>
+          <div class="field"><label for="community-groups">JIDs dos grupos (um por linha)</label><textarea id="community-groups" required placeholder="120363...@g.us"></textarea></div>
+          <div class="field full actions"><button class="btn primary" type="submit" data-community-action="add">Adicionar grupos</button><button class="btn" type="submit" data-community-action="remove">Remover grupos</button></div>
+        </form></section>`;
+    }
+    function groupMembersMarkup() {
+      if (!state.groupMembers) return "";
+      const { group_name, group_jid, participants } = state.groupMembers;
+      return `<h3 style="font-size:13px;margin:12px 0 4px">${esc(group_name)}</h3><p class="help">${esc(group_jid)} · ${participants.length} contatos importados</p>
+        ${participants.length ? `<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Telefone</th><th>Consentimento de campanha</th></tr></thead><tbody>${participants.map((person) =>
+          `<tr><td>${esc(person.name || "Sem nome")}</td><td>${esc(person.phone)}</td><td><span class="badge">Não autorizado</span></td></tr>`).join("")}</tbody></table></div>` :
+          '<div class="empty">Nenhum participante com telefone disponível para importar.</div>'}`;
+    }
+    function groupCards() {
+      return state.groups.map((g) => {
+        const jid = g.JID || g.jid || "";
+        return `<article class="group-card"><h3>${esc(g.Name || g.name || "Grupo WhatsApp")}</h3><p>${esc(jid)}${g.CommunityJID ? ` · Comunidade: ${esc(g.CommunityJID)}` : ""}</p>
+          <div class="group-actions"><button class="btn small" data-sync-members="${esc(jid)}">Salvar participantes no banco</button>
+          <textarea data-participants="${esc(jid)}" placeholder="Telefones para adicionar, um por linha"></textarea>
+          <button class="btn small" data-add-participants="${esc(jid)}">Adicionar ao grupo (requer admin)</button></div></article>`;
+      }).join("");
+    }
+    function renderSettings() {
+      const status = state.status;
+      return `${pageHead("Configurações e integração", "Configure a conexão Uazapi, o envio e a proteção da aplicação.")}
+        <div class="grid two-col">
+          <section class="card"><h2 class="card-title">Conectar instância</h2>
+            <form id="uazapi-form" class="form-grid">
+              <div class="field full"><label for="uazapi-url">Server URL</label><input id="uazapi-url" type="url" required value="${esc(status.server_url || "")}" placeholder="https://sua-instancia.uazapi.com"><span class="help">URL do servidor Uazapi, sem barra no final.</span></div>
+              <div class="field full"><label for="uazapi-token">Token da instância</label><input id="uazapi-token" type="password" autocomplete="new-password" ${status.token_configured ? "" : "required"} placeholder="${status.token_configured ? "Token salvo — deixe vazio para manter ou informe para substituir" : "Cole aqui o token da instância"}"><span class="help">O token é validado com a Uazapi e guardado somente no backend. Nunca é enviado de volta ao navegador.</span></div>
+              <div class="field full"><label for="uazapi-public-url">URL pública HTTPS deste sistema (para webhooks)</label><input id="uazapi-public-url" type="url" value="${esc(status.public_base_url || "")}" placeholder="https://automacao.seudominio.com"><span class="help">Opcional ao conectar. Necessária para receber mensagens; o servidor deve estar acessível publicamente por HTTPS.</span></div>
+              <div class="field full"><button class="btn primary" type="submit">Validar e salvar conexão</button></div>
+            </form>
+          </section>
+          <section class="card"><h2 class="card-title">Status da conexão</h2>
+            <div class="settings-line"><strong>Status</strong><span>${status.configured ? '<span class="badge green">Configurada</span>' : '<span class="badge amber">Pendente</span>'}</span></div>
+            <div class="settings-line"><strong>Server URL</strong><span>${esc(status.server_url || "Não configurada")}</span></div>
+            <div class="settings-line"><strong>Token</strong><span>${status.token_configured ? "Configurado · oculto" : "Não configurado"}</span></div>
+            <div class="settings-line"><strong>Validação</strong><span>A conexão é testada ao salvar com a consulta de webhook da Uazapi.</span></div>
+          </section>
+        </div>
+        <div class="grid two-col section-gap">
+          <section class="card"><h2 class="card-title">Webhook de entrada</h2>
+            <div class="settings-line"><strong>Endpoint público</strong><span>${esc(status.public_webhook_url || "Informe a URL HTTPS acima")}</span></div>
+            <p class="help">O servidor precisa estar publicado em HTTPS para o Uazapi enviar mensagens recebidas.</p>
+            <div class="actions section-gap"><button class="btn primary" id="configure-webhook">Configurar webhook no Uazapi</button></div>
+          </section>
+          <section class="card"><h2 class="card-title">Configurações de envio</h2>
+            <form id="delivery-settings-form" class="form-grid">
+              <div class="field full"><label for="send-interval">Intervalo entre mensagens (segundos)</label><input id="send-interval" name="send_interval_seconds" type="number" min="1" step="0.1" required value="${esc(status.send_interval_seconds || 2)}"><span class="help">Aplicado entre destinatários; alterações durante uma campanha valem para os próximos envios. Mínimo de 1 segundo.</span></div>
+              <div class="field full"><button class="btn primary" type="submit">Salvar configuração de envio</button></div>
+            </form>
+          </section>
+          <section class="card"><h2 class="card-title">Proteção da aplicação</h2>
+            <div class="settings-line"><strong>Chave de acesso</strong><span>${status.api_key_configured ? "Configurada · não exibida" : "Não configurada"}</span></div>
+            ${status.api_key_managed_by_server ? `<p class="help">A chave é gerenciada pela variável APP_API_KEY na inicialização do servidor e não pode ser alterada aqui.</p>` : `
+              <form id="access-key-form" class="form-grid">
+                <div class="field full"><label for="new-app-key">Nova chave de acesso</label><input id="new-app-key" type="password" minlength="16" maxlength="4096" autocomplete="new-password" placeholder="${status.api_key_configured ? "Informe para substituir a chave atual" : "Use pelo menos 16 caracteres"}" required><span class="help">A chave é armazenada no banco local e nunca é devolvida pela API.</span></div>
+                <div class="field full"><label for="confirm-app-key">Confirmar chave</label><input id="confirm-app-key" type="password" minlength="16" maxlength="4096" autocomplete="new-password" required></div>
+                <div class="field full actions"><button class="btn primary" type="submit">${status.api_key_configured ? "Atualizar chave" : "Configurar chave"}</button>${status.api_key_configured ? `<button class="btn danger" type="button" id="clear-app-key">Remover chave</button>` : ""}</div>
+              </form>
+            `}
+            <p class="help">Host, porta e caminho do banco são opções de inicialização e exigem reiniciar o servidor para alteração. Para acesso pela rede, prefira HTTPS e autenticação adicional no proxy reverso.</p>
+          </section>
+        </div>`;
+    }
+    function bindPageActions() {
+      document.querySelectorAll("[data-goto]").forEach((el) => el.addEventListener("click", () => setPage(el.dataset.goto)));
+      const contactForm = document.getElementById("contact-form");
+      if (contactForm) contactForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = new FormData(contactForm);
+        try {
+          await api("/api/contacts", { method: "POST", body: JSON.stringify({
+            name: form.get("name"), phone: form.get("phone"), opted_in: form.has("opted_in"),
+            group_ids: form.getAll("group_ids")
+          }) });
+          contactForm.reset(); toast("Contato salvo."); await refresh();
+        } catch (error) { toast(error.message); }
+      });
+      const contactGroupForm = document.getElementById("contact-group-form");
+      if (contactGroupForm) contactGroupForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const name = new FormData(contactGroupForm).get("name");
+        try {
+          await api("/api/contact-groups", { method: "POST", body: JSON.stringify({ name }) });
+          contactGroupForm.reset();
+          toast("Grupo de contatos criado.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      });
+      document.querySelectorAll("[data-edit-contact-group]").forEach((button) => button.addEventListener("click", async () => {
+        const group = state.contactGroups.find((item) => item.id === button.dataset.editContactGroup);
+        if (!group) return toast("Grupo de contatos não encontrado.");
+        const name = prompt("Novo nome do grupo:", group.name);
+        if (name === null || !name.trim()) return;
+        try {
+          await api(`/api/contact-groups/${group.id}`, { method: "PUT", body: JSON.stringify({ name: name.trim() }) });
+          toast("Grupo renomeado.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      }));
+      document.querySelectorAll("[data-delete-contact-group]").forEach((button) => button.addEventListener("click", async () => {
+        const group = state.contactGroups.find((item) => item.id === button.dataset.deleteContactGroup);
+        if (!group || !confirm(`Excluir o grupo “${group.name}” e remover seus vínculos? Os contatos não serão excluídos.`)) return;
+        try {
+          await api(`/api/contact-groups/${group.id}`, { method: "DELETE" });
+          toast("Grupo excluído; os contatos foram mantidos.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      }));
+      const importButton = document.getElementById("import-csv");
+      if (importButton) importButton.addEventListener("click", async () => {
+        const file = document.getElementById("csv-file").files[0];
+        if (!file) return toast("Selecione um arquivo CSV.");
+        try {
+          const result = await api("/api/contacts/import", { method: "POST", body: JSON.stringify({ csv: await file.text() }) });
+          toast(`${result.imported} contatos importados.`); await refresh();
+        } catch (error) { toast(error.message); }
+      });
+      const search = document.getElementById("contact-search");
+      if (search) search.addEventListener("input", () => {
+        const query = search.value.toLowerCase();
+        const filtered = state.contacts.filter((c) => `${c.name} ${c.phone}`.toLowerCase().includes(query));
+        document.getElementById("contacts-table-body").innerHTML = contactRows(filtered);
+        bindConsentButtons();
+        bindContactActions();
+      });
+      bindConsentButtons();
+      bindContactActions();
+      const editContactForm = document.getElementById("edit-contact-form");
+      if (editContactForm) editContactForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = new FormData(editContactForm);
+        const id = form.get("id");
+        try {
+          await api(`/api/contacts/${id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              name: form.get("name"), phone: form.get("phone"),
+              opted_in: form.has("opted_in"), group_ids: form.getAll("group_ids")
+            })
+          });
+          document.getElementById("contact-editor").close();
+          toast("Contato atualizado.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      });
+      const cancelEditContact = document.getElementById("cancel-edit-contact");
+      if (cancelEditContact) cancelEditContact.addEventListener("click", () => document.getElementById("contact-editor").close());
+      const campaignForm = document.getElementById("campaign-form");
+      if (campaignForm) {
+        const campaignText = document.getElementById("campaign-text");
+        const campaignMedia = document.getElementById("campaign-media");
+        const removeCampaignMedia = document.getElementById("remove-campaign-media");
+        if (removeCampaignMedia) removeCampaignMedia.addEventListener("click", () => {
+          state.campaignEditor.media = null;
+          render();
+        });
+        const cancelCampaignEdit = document.getElementById("cancel-campaign-edit");
+        if (cancelCampaignEdit) cancelCampaignEdit.addEventListener("click", () => {
+          state.campaignEditor = null;
+          render();
+        });
+        const updateCampaignRequirements = () => {
+          const hasMedia = Boolean(campaignMedia.files[0] || state.campaignEditor?.media);
+          campaignText.required = !hasMedia;
+          campaignText.setCustomValidity(
+            !hasMedia && !campaignText.value.trim()
+              ? "Informe uma mensagem ou anexe uma imagem/vídeo."
+              : ""
+          );
+        };
+        campaignText.addEventListener("input", updateCampaignRequirements);
+        campaignMedia.addEventListener("change", updateCampaignRequirements);
+        campaignForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          updateCampaignRequirements();
+          if (!campaignForm.reportValidity()) return;
+          const form = new FormData(campaignForm);
+          const submit = campaignForm.querySelector('button[type="submit"]');
+          submit.disabled = true;
+          try {
+            const file = campaignMedia.files[0];
+            const media = file ? await uploadMedia(file) : state.campaignEditor?.media || null;
+            if (state.campaignEditor) {
+              await api(`/api/campaigns/${state.campaignEditor.id}`, {
+                method: "PUT", body: JSON.stringify({
+                  name: form.get("name"), text: form.get("text"), media
+                })
+              });
+              state.campaignEditor = null;
+              toast("Rascunho atualizado. Selecione os contatos e dispare quando estiver pronto.");
+            } else {
+              const result = await api("/api/campaigns", { method: "POST", body: JSON.stringify({
+                name: form.get("name"), text: form.get("text"), media
+              }) });
+              toast(`Campanha criada com ${result.recipients} contatos autorizados.`);
+            }
+            await refresh();
+          } catch (error) { toast(error.message); }
+          finally { submit.disabled = false; }
+        });
+      }
+      const uazapiForm = document.getElementById("uazapi-form");
+      if (uazapiForm) uazapiForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submit = uazapiForm.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        try {
+          const result = await api("/api/uazapi/configure", { method: "POST", body: JSON.stringify({
+            server_url: document.getElementById("uazapi-url").value.trim(),
+            token: document.getElementById("uazapi-token").value,
+            public_base_url: document.getElementById("uazapi-public-url").value.trim()
+          }) });
+          toast(result.message);
+          await refresh();
+        } catch (error) { toast(error.message); }
+        finally { submit.disabled = false; }
+      });
+      const deliverySettingsForm = document.getElementById("delivery-settings-form");
+      if (deliverySettingsForm) deliverySettingsForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submit = deliverySettingsForm.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        try {
+          const result = await api("/api/settings", {
+            method: "POST",
+            body: JSON.stringify({
+              send_interval_seconds: Number(document.getElementById("send-interval").value)
+            })
+          });
+          toast(`Intervalo salvo: ${result.send_interval_seconds} segundo(s).`);
+          await refresh();
+        } catch (error) { toast(error.message); }
+        finally { submit.disabled = false; }
+      });
+      const accessKeyForm = document.getElementById("access-key-form");
+      if (accessKeyForm) accessKeyForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const key = document.getElementById("new-app-key").value;
+        if (key.length < 16) return toast("A chave deve ter pelo menos 16 caracteres.");
+        if (key !== document.getElementById("confirm-app-key").value) return toast("As chaves não conferem.");
+        const submit = accessKeyForm.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        try {
+          await api("/api/settings/access-key", { method: "POST", body: JSON.stringify({ key }) });
+          sessionStorage.setItem("disparos-app-key", key);
+          toast("Chave de acesso configurada.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+        finally { submit.disabled = false; }
+      });
+      const clearAppKey = document.getElementById("clear-app-key");
+      if (clearAppKey) clearAppKey.addEventListener("click", async () => {
+        if (!confirm("Remover a chave de acesso? A aplicação ficará sem essa proteção.")) return;
+        clearAppKey.disabled = true;
+        try {
+          await api("/api/settings/access-key", {
+            method: "POST", body: JSON.stringify({ clear: true })
+          });
+          sessionStorage.removeItem("disparos-app-key");
+          toast("Chave de acesso removida.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+        finally { clearAppKey.disabled = false; }
+      });
+      document.querySelectorAll("[data-select-campaign]").forEach((button) => button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          const contacts = await api(`/api/campaigns/${button.dataset.selectCampaign}/contacts`);
+          state.campaignSelection = { id: button.dataset.selectCampaign, contacts };
+          render();
+          const dialog = document.getElementById("campaign-contacts-dialog");
+          dialog.showModal();
+          const updateCount = () => {
+            const selectedCount = dialog.querySelectorAll('input[name="contact_ids"]:checked').length;
+            document.getElementById("campaign-selected-count").textContent = `${selectedCount} selecionados`;
+          };
+          document.getElementById("apply-campaign-groups").addEventListener("click", () => {
+            const groupIds = [...dialog.querySelectorAll('input[name="campaign_group_ids"]:checked')]
+              .map((checkbox) => checkbox.value);
+            if (!groupIds.length) return toast("Selecione ao menos um grupo de contatos.");
+            const selectedContacts = new Set(contacts.filter((contact) =>
+              (contact.group_ids || []).some((groupId) => groupIds.includes(groupId))
+            ).map((contact) => contact.id));
+            dialog.querySelectorAll('input[name="contact_ids"]').forEach((checkbox) => {
+              checkbox.checked = selectedContacts.has(checkbox.value);
+            });
+            updateCount();
+          });
+          const search = document.getElementById("campaign-contact-search");
+          search.addEventListener("input", () => {
+            const query = search.value.trim().toLowerCase();
+            dialog.querySelectorAll("tbody tr[data-contact-search]").forEach((row) => {
+              row.hidden = !row.dataset.contactSearch.includes(query);
+            });
+          });
+          document.getElementById("select-visible-contacts").addEventListener("click", () => {
+            dialog.querySelectorAll("tbody tr[data-contact-search]:not([hidden]) input[name='contact_ids']")
+              .forEach((checkbox) => { checkbox.checked = true; });
+            updateCount();
+          });
+          document.getElementById("deselect-visible-contacts").addEventListener("click", () => {
+            dialog.querySelectorAll("tbody tr[data-contact-search]:not([hidden]) input[name='contact_ids']")
+              .forEach((checkbox) => { checkbox.checked = false; });
+            updateCount();
+          });
+          dialog.querySelectorAll('input[name="contact_ids"]').forEach((checkbox) =>
+            checkbox.addEventListener("change", updateCount)
+          );
+          updateCount();
+          dialog.addEventListener("close", () => { state.campaignSelection = null; }, { once: true });
+          document.getElementById("cancel-campaign-contacts").addEventListener("click", () => dialog.close());
+          document.getElementById("campaign-contacts-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const save = event.currentTarget.querySelector('button[type="submit"]');
+            save.disabled = true;
+            const contact_ids = [...dialog.querySelectorAll('input[name="contact_ids"]:checked')]
+              .map((checkbox) => checkbox.value);
+            try {
+              const result = await api(`/api/campaigns/${state.campaignSelection.id}/recipients`, {
+                method: "PUT", body: JSON.stringify({ contact_ids })
+              });
+              state.campaignSelection = null;
+              dialog.close();
+              toast(`${result.recipients} contatos selecionados.`);
+              await refresh();
+            } catch (error) { toast(error.message); }
+            finally { save.disabled = false; }
+          });
+        } catch (error) { toast(error.message); }
+        finally { button.disabled = false; }
+      }));
+      if (state.page === "workflows") bindFlowBuilderActions();
+      document.querySelectorAll("[data-workflow-toggle]").forEach((button) => button.addEventListener("click", async () => {
+        try {
+          await api(`/api/workflows/${button.dataset.workflowToggle}`, { method: "PATCH", body: "{}" });
+          await refresh();
+        } catch (error) { toast(error.message); }
+      }));
+      document.querySelectorAll("[data-start-campaign]").forEach((button) => button.addEventListener("click", async () => {
+        const campaign = state.campaigns.find((item) => item.id === button.dataset.startCampaign);
+        const recipientCount = Number(campaign?.pending || 0);
+        if (!recipientCount) return toast("Selecione ao menos um contato autorizado antes de disparar.");
+        if (!confirm(`Disparar para ${recipientCount} contato(s) com consentimento ativo?`)) return;
+        button.disabled = true;
+        try {
+          const result = await api(`/api/campaigns/${button.dataset.startCampaign}/start`, { method: "POST", body: "{}" });
+          toast(`Campanha iniciada para ${result.recipients} contatos.`); await refresh();
+        } catch (error) { toast(error.message); }
+        finally { button.disabled = false; }
+      }));
+      document.querySelectorAll("[data-resend-campaign]").forEach((button) => button.addEventListener("click", async () => {
+        const campaign = state.campaigns.find((item) => item.id === button.dataset.resendCampaign);
+        if (!campaign || !confirm(`Reenviar “${campaign.name}” aos destinatários originais que ainda têm consentimento ativo? Será criada uma nova campanha e o histórico atual será preservado.`)) return;
+        button.disabled = true;
+        try {
+          const result = await api(`/api/campaigns/${campaign.id}/resend`, { method: "POST", body: "{}" });
+          toast(`Reenvio iniciado para ${result.recipients} contatos. O histórico será registrado em “${result.name}”.`);
+          await refresh();
+        } catch (error) { toast(error.message); }
+        finally { button.disabled = false; }
+      }));
+      document.querySelectorAll("[data-edit-campaign]").forEach((button) => button.addEventListener("click", () => {
+        const campaign = state.campaigns.find((item) => item.id === button.dataset.editCampaign);
+        if (!campaign || campaign.status !== "draft") return toast("Somente rascunhos podem ser editados.");
+        try {
+          state.campaignEditor = {
+            id: campaign.id,
+            name: campaign.name,
+            text: campaign.text || "",
+            media: campaign.media ? JSON.parse(campaign.media) : null
+          };
+          setPage("campaigns");
+          document.getElementById("campaign-form").scrollIntoView({ behavior: "smooth", block: "start" });
+          document.getElementById("campaign-name").focus({ preventScroll: true });
+        } catch (error) { toast(`Não foi possível abrir o rascunho: ${error.message}`); }
+      }));
+      document.querySelectorAll("[data-duplicate-campaign]").forEach((button) => button.addEventListener("click", async () => {
+        const source = state.campaigns.find((item) => item.id === button.dataset.duplicateCampaign);
+        if (!source || !confirm(`Criar um novo rascunho baseado em “${source.name}”? O histórico original não será alterado.`)) return;
+        button.disabled = true;
+        try {
+          const copy = await api(`/api/campaigns/${source.id}/duplicate`, {
+            method: "POST", body: "{}"
+          });
+          state.campaignEditor = {
+            id: copy.id, name: copy.name, text: copy.text || "",
+            media: copy.media ? JSON.parse(copy.media) : null
+          };
+          setPage("campaigns");
+          document.getElementById("campaign-form").scrollIntoView({ behavior: "smooth", block: "start" });
+          document.getElementById("campaign-name").focus({ preventScroll: true });
+          toast(`Modelo copiado para um novo rascunho com ${copy.recipients} contatos ainda autorizados. Edite e salve antes de disparar.`);
+        } catch (error) { toast(error.message); }
+        finally { button.disabled = false; }
+      }));
+      document.querySelectorAll("[data-campaign-details]").forEach((button) => button.addEventListener("click", async () => {
+        const campaignId = button.dataset.campaignDetails;
+        try {
+          if (state.page !== "campaigns") setPage("campaigns");
+          const recipients = await api(`/api/campaigns/${campaignId}/recipients`);
+          state.campaignDetails = { id: campaignId, recipients };
+          render();
+        } catch (error) { toast(error.message); }
+      }));
+      const closeCampaignDetails = document.getElementById("close-campaign-details");
+      if (closeCampaignDetails) closeCampaignDetails.addEventListener("click", () => {
+        state.campaignDetails = null;
+        render();
+      });
+      const loadGroups = document.getElementById("load-groups");
+      if (loadGroups) loadGroups.addEventListener("click", async () => {
+        try {
+          const result = await api("/api/groups/list", { method: "POST", body: "{}" });
+          state.groups = result.groups || [];
+          render(); toast(`${state.groups.length} grupos carregados.`);
+        } catch (error) { toast(error.message); }
+      });
+      document.querySelectorAll("[data-sync-members]").forEach((button) => button.addEventListener("click", async () => {
+        try {
+          const result = await api("/api/groups/sync-members", { method: "POST", body: JSON.stringify({ groupjid: button.dataset.syncMembers }) });
+          state.groupMembers = result;
+          render();
+          toast(`${result.saved} participantes salvos sem consentimento.${result.skipped_non_phone ? ` ${result.skipped_non_phone} identificadores sem telefone WhatsApp não foram importados.` : ""}`);
+        } catch (error) { toast(error.message); }
+      }));
+      const lookupMembers = document.getElementById("lookup-group-members");
+      if (lookupMembers) lookupMembers.addEventListener("click", async () => {
+        const groupjid = document.getElementById("group-jid-lookup").value.trim();
+        if (!groupjid) return toast("Informe o JID do grupo.");
+        lookupMembers.disabled = true;
+        try {
+          const result = await api("/api/groups/sync-members", {
+            method: "POST", body: JSON.stringify({ groupjid })
+          });
+          state.groupMembers = result;
+          render();
+          toast(`${result.saved} participantes salvos sem consentimento.${result.skipped_non_phone ? ` ${result.skipped_non_phone} identificadores sem telefone WhatsApp não foram importados.` : ""}`);
+        } catch (error) { toast(error.message); }
+        finally { lookupMembers.disabled = false; }
+      });
+      document.querySelectorAll("[data-add-participants]").forEach((button) => button.addEventListener("click", async () => {
+        const textarea = document.querySelector(`[data-participants="${CSS.escape(button.dataset.addParticipants)}"]`);
+        const participants = textarea.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+        if (!participants.length) return toast("Informe ao menos um telefone.");
+        if (!confirm(`Confirma que ${participants.length} pessoa(s) concordaram em entrar no grupo? A conta precisa ser administradora.`)) return;
+        try {
+          const result = await api("/api/groups/add-participants", { method: "POST", body: JSON.stringify({
+            groupjid: button.dataset.addParticipants, participants
+          }) });
+          toast(`Solicitação concluída. Consulte o resultado por participante: ${JSON.stringify(result.groupUpdated || result).slice(0, 180)}…`);
+        } catch (error) { toast(error.message); }
+      }));
+      const communityForm = document.getElementById("community-form");
+      if (communityForm) communityForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const action = event.submitter.dataset.communityAction;
+        const community = document.getElementById("community-jid").value.trim();
+        const groupjids = document.getElementById("community-groups").value.split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
+        try {
+          const result = await api("/api/community/edit-groups", { method: "POST", body: JSON.stringify({ community, action, groupjids }) });
+          toast(`Operação concluída: ${(result.success || []).length} grupo(s).`);
+        } catch (error) { toast(error.message); }
+      });
+      const configureWebhook = document.getElementById("configure-webhook");
+      if (configureWebhook) configureWebhook.addEventListener("click", async () => {
+        try {
+          await api("/api/webhook/configure", { method: "POST", body: "{}" });
+          toast("Webhook configurado no Uazapi.");
+        } catch (error) { toast(error.message); }
+      });
+      if (state.page === "overview") loadActivity();
+    }
+    function bindConsentButtons() {
+      document.querySelectorAll("[data-consent]").forEach((button) => button.addEventListener("click", async () => {
+        try {
+          await api(`/api/contacts/${button.dataset.consent}`, { method: "PATCH", body: JSON.stringify({ opted_in: button.dataset.value === "1" }) });
+          await refresh();
+        } catch (error) { toast(error.message); }
+      }));
+    }
+    function bindContactActions() {
+      document.querySelectorAll("[data-edit-contact]").forEach((button) => button.addEventListener("click", () => {
+        const contact = state.contacts.find((item) => item.id === button.dataset.editContact);
+        if (!contact) return toast("Contato não encontrado.");
+        const form = document.getElementById("edit-contact-form");
+        form.elements.id.value = contact.id;
+        form.elements.name.value = contact.name || "";
+        form.elements.phone.value = contact.phone;
+        form.elements.opted_in.checked = Boolean(contact.opted_in);
+        form.querySelectorAll('input[name="group_ids"]').forEach((checkbox) => {
+          checkbox.checked = (contact.group_ids || []).includes(checkbox.value);
+        });
+        document.getElementById("contact-editor").showModal();
+      }));
+      document.querySelectorAll("[data-delete-contact]").forEach((button) => button.addEventListener("click", async () => {
+        const contact = state.contacts.find((item) => item.id === button.dataset.deleteContact);
+        if (!contact || !confirm(`Excluir ${contact.name || contact.phone}? Nome, telefone e consentimento serão removidos; o histórico da campanha será mantido anonimizado.`)) return;
+        try {
+          await api(`/api/contacts/${contact.id}`, { method: "DELETE" });
+          toast("Dados pessoais removidos. O histórico de campanhas foi preservado anonimizado.");
+          await refresh();
+        } catch (error) { toast(error.message); }
+      }));
+    }
+    async function uploadMedia(file) {
+      if (file.size > 12 * 1024 * 1024) throw new Error("O arquivo deve ter no máximo 12 MiB.");
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
+        reader.readAsDataURL(file);
+      });
+      return api("/api/media", { method: "POST", body: JSON.stringify({ name: file.name, data }) });
+    }
+    async function loadActivity() {
+      try {
+        const items = await api("/api/activity");
+        const target = document.getElementById("activity-list");
+        if (!target) return;
+        target.innerHTML = items.length ? items.map((item) =>
+          `<div class="activity-item"><span class="activity-symbol">•</span><div><div class="activity-detail">${esc(item.detail)}</div><div class="activity-time">${dateText(item.created_at)}</div></div></div>`).join("") :
+          `<div class="empty">As atividades aparecerão aqui.</div>`;
+      } catch (error) { toast(error.message); }
+    }
+    document.querySelectorAll(".nav button").forEach((button) => button.addEventListener("click", () => setPage(button.dataset.page)));
+    document.getElementById("access-key-btn").addEventListener("click", () => {
+      const key = prompt("Chave APP_API_KEY configurada no servidor (deixe vazio para limpar):", "");
+      if (key === null) return;
+      if (key) sessionStorage.setItem("disparos-app-key", key);
+      else sessionStorage.removeItem("disparos-app-key");
+      refresh();
+    });
+    refresh();
+    setInterval(() => {
+      const campaignForm = document.getElementById("campaign-form");
+      const campaignDraftInProgress = state.page === "campaigns" && campaignForm && (
+        state.campaignEditor ||
+        document.activeElement?.form === campaignForm ||
+        campaignForm.elements.name.value.trim() ||
+        campaignForm.elements.text.value.trim() ||
+        document.getElementById("campaign-media").files.length > 0
+      );
+      if (!state.campaignSelection && !campaignDraftInProgress &&
+          (state.page === "campaigns" || state.page === "overview")) refresh();
+    }, 8000);
+  </script>
+</body>
+</html>
