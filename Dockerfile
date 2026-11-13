@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY app.py ./
+COPY app.py railway_start.py ./
 COPY web/ ./web/
 
 RUN mkdir -p /app/data \
